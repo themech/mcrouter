@@ -135,6 +135,8 @@ McRouteHandleProvider<RouterInfo>::makePool(
   auto name = jpool.name.str();
   const auto& json = jpool.json;
   auto& opts = proxy_.router().opts();
+
+  VLOG(2) << "McRouteHandleProvider::makePool - Processing pool " << name;
   // region & cluster
   folly::StringPiece region, cluster;
   if (auto jregion = json.get_ptr("region")) {
@@ -146,6 +148,7 @@ McRouteHandleProvider<RouterInfo>::makePool(
           name);
     } else {
       region = jregion->stringPiece();
+      VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " has region " << region;
     }
   }
   if (auto jcluster = json.get_ptr("cluster")) {
@@ -157,6 +160,7 @@ McRouteHandleProvider<RouterInfo>::makePool(
           name);
     } else {
       cluster = jcluster->stringPiece();
+      VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " has cluster " << cluster;
     }
   }
 
@@ -173,20 +177,28 @@ McRouteHandleProvider<RouterInfo>::makePool(
 
     if (!region.empty() && !cluster.empty()) {
       auto& route = opts.default_route;
+      VLOG(2) << "McRouteHandleProvider::makePool - default router cluster: " << route.getCluster()
+              << ", region: " << route.getRegion();
+
       if (region == route.getRegion() && cluster == route.getCluster()) {
         if (opts.within_cluster_timeout_ms != 0) {
           timeout = std::chrono::milliseconds(opts.within_cluster_timeout_ms);
+          VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " is using within_cluster_timeout_ms";
         }
       } else if (region == route.getRegion()) {
         if (opts.cross_cluster_timeout_ms != 0) {
           timeout = std::chrono::milliseconds(opts.cross_cluster_timeout_ms);
+          VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " is using cross_cluster_timeout_ms";
         }
       } else {
         if (opts.cross_region_timeout_ms != 0) {
           timeout = std::chrono::milliseconds(opts.cross_region_timeout_ms);
+          VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " is using cross_region_timeout_ms";
         }
       }
     }
+
+    VLOG(2) << "McRouteHandleProvider::makePool - Pool " << name << " has timeout " << std::to_string(timeout.count());
 
     bool keepRoutingPrefix = false;
     if (auto jKeepRoutingPrefix = json.get_ptr("keep_routing_prefix")) {
